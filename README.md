@@ -1,5 +1,5 @@
 # TinyBasicPlus
-A tinybasic plus interpreter for Arduino (UNO/NANO) boards, based on BleuLlamaS earlier work
+A tinybasic plus interpreter for Arduino (UNO/NANO) boards, based on BleuLlama's earlier work
 
 Optimisations to keep as much as possible free RAM for programs while fixing bugs and adding features
 
