@@ -6,9 +6,10 @@
 //	          Scott Lawrence <yorgle@gmail.com>
 //            Harm de Leeuw <deleeuw52@outlook.com>
 
-#define kVersion "v0.17t"
+#define kVersion "v0.17x"
 
-// v0.17t : 2018-6-12 (Harm)
+// v0.17x : 2018-7-17 (Harm)
+//      implement hardware serial buffers correctly
 //      fixed bug in re-asigning servo's causing jitter when frequently updated
 //      undo the serial buffer resizing at cost of program space
 //
@@ -240,10 +241,11 @@ File fp;
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) // Arduino Mega 
 #define kRamSize  (RAMEND - 1899 - kRamFileIO - kRamTones)
 #else //UNO
-#define kRamSize  (RAMEND - 1199 - kRamFileIO - kRamTones)
-//create more free RAM
-//#define kRamSize  (RAMEND - 1199 + 96 - kRamFileIO - kRamTones) //changed UART buffers from 64 to 16 @ Harm
-//SERIAL_RX_BUFFER_SIZE=16
+// @harm test to save memory from 64+64 to 16+32 = 80 bytes
+//#define kRamSize  (RAMEND - 1199 - kRamFileIO - kRamTones)
+#define kRamSize  (RAMEND - 1199 + 80 - kRamFileIO - kRamTones)
+#define SERIAL_TX_BUFFER_SIZE 32
+#define SERIAL_RX_BUFFER_SIZE 16
 #endif
 
 #ifndef ARDUINO
