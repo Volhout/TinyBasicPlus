@@ -9,7 +9,7 @@
 #define kVersion "v0.17x"
 
 // v0.17x : 2018-7-17 (Harm)
-//      implement hardware serial buffers correctly
+//      implement hardware serial buffers correctly, and make sur emax program will run
 //      fixed bug in re-asigning servo's causing jitter when frequently updated
 //      undo the serial buffer resizing at cost of program space
 //
@@ -175,105 +175,103 @@ char eliminateCompileErrors = 1;  // fix to suppress arduino build errors
 
 ////////////////////////////////////////////////////////////////////////////////
 #ifdef ARDUINO
-#ifndef RAMEND
-// okay, this is a hack for now
-// if we're in here, we're a DUE probably (ARM instead of AVR)
+  #ifndef RAMEND
+    // okay, this is a hack for now
+    // if we're in here, we're a DUE probably (ARM instead of AVR)
 
-#define RAMEND 4096-1
+    #define RAMEND 4096-1
 
-// turn off EEProm
-#undef ENABLE_EEPROM
-#undef ENABLE_TONES
+    // turn off EEProm
+    #undef ENABLE_EEPROM
+    #undef ENABLE_TONES
+  #else
+    // we're an AVR!
+    // we're moving our data strings into progmem
+    #include <avr/pgmspace.h>
 
-#else
-// we're an AVR!
-// we're moving our data strings into progmem
-#include <avr/pgmspace.h>
+    //@Harm add servo library, cost 4 bytes RAM 
+    #ifdef ENABLE_SERVO
+      #include <PWMServo.h>
+      // Servo object
+      PWMServo servoA, servoB;
+      #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) // Arduino Mega 
+           PWMServo servoC;
+      #endif
+    #endif
+  #endif
 
-//@Harm add servo library, cost 4 bytes RAM 
-#ifdef ENABLE_SERVO
-#include <PWMServo.h>
-// Servo object
-PWMServo servoA, servoB;
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) // Arduino Mega 
-PWMServo servoC;
-#endif
-#endif
-
-#endif
-
-// includes, and settings for Arduino-specific functionality
-#ifdef ENABLE_EEPROM
-#include <EEPROM.h>  /* NOTE: case sensitive */
-int eepos = 0;
-#endif
+  // includes, and settings for Arduino-specific functionality
+  #ifdef ENABLE_EEPROM
+    #include <EEPROM.h>  /* NOTE: case sensitive */
+    int eepos = 0;  
+  #endif
 
 
-#ifdef ENABLE_FILEIO
-#include <SD.h>
-#include <SPI.h> /* needed as of 1.5 beta */
+  #ifdef ENABLE_FILEIO
+    #include <SD.h>
+    #include <SPI.h> /* needed as of 1.5 beta */
 
-// Arduino-specific configuration
-// set this to the card select for your SD shield
-#define kSD_CS   10
-#define kSD_Fail  0
-#define kSD_OK    1
+    // Arduino-specific configuration
+    // set this to the card select for your SD shield
+    #define kSD_CS   10
+    #define kSD_Fail  0
+    #define kSD_OK    1
 
-File fp;
-#endif
+    File fp;
+  #endif
 
-// set up our RAM buffer size for program and user input
-// NOTE: This number will have to change if you include other libraries.
-#ifdef ARDUINO
-#ifdef ENABLE_FILEIO
-#define kRamFileIO (1030) /* approximate */
-#else
-#define kRamFileIO (0)
-#endif
-#ifdef ENABLE_TONES
-#define kRamTones (40)
-#else
-#define kRamTones (0)
-#endif
-#endif /* ARDUINO */
+  // set up our RAM buffer size for program and user input
+  // NOTE: This number will have to change if you include other libraries.
+  #ifdef ARDUINO  // this appears to be obsolete since this all is ARDUINO 
+    #ifdef ENABLE_FILEIO
+      #define kRamFileIO (1030) /* approximate */
+    #else
+      #define kRamFileIO (0)
+    #endif
+    #ifdef ENABLE_TONES
+      #define kRamTones (40)
+    #else
+      #define kRamTones (0)
+    #endif
+  #endif /* ARDUINO */
 
-//@Harm prevent program halts due to terminal 
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) // Arduino Mega 
-#define kRamSize  (RAMEND - 1899 - kRamFileIO - kRamTones)
-#else //UNO
-// @harm test to save memory from 64+64 to 16+32 = 80 bytes
-//#define kRamSize  (RAMEND - 1199 - kRamFileIO - kRamTones)
-#define kRamSize  (RAMEND - 1199 + 80 - kRamFileIO - kRamTones)
-#define SERIAL_TX_BUFFER_SIZE 32
-#define SERIAL_RX_BUFFER_SIZE 16
-#endif
+  //@Harm prevent program halts due to terminal 
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) // Arduino Mega 
+    #define kRamSize  (RAMEND - 1899 - kRamFileIO - kRamTones)
+  #else //UNO
+    // @harm test to save memory from 64+64 to 16+32 = 80 bytes
+    //#define kRamSize  (RAMEND - 1199 - kRamFileIO - kRamTones)
+    #define kRamSize  (RAMEND - 1199 + 80 - kRamFileIO - kRamTones)
+    #define SERIAL_TX_BUFFER_SIZE 32
+    #define SERIAL_RX_BUFFER_SIZE 16
+  #endif
 
-#ifndef ARDUINO
-// Not arduino setup
-#include <stdio.h>
-#include <stdlib.h>
-#undef ENABLE_TONES
+  #ifndef ARDUINO
+    // Not arduino setup
+    #include <stdio.h>
+    #include <stdlib.h>
+    #undef ENABLE_TONES
 
-// size of our program ram
-#define kRamSize   4096 /* arbitrary */
+    // size of our program ram
+    #define kRamSize   4096 /* arbitrary */
 
-#ifdef ENABLE_FILEIO
-FILE * fp;
-#endif
-#endif
+    #ifdef ENABLE_FILEIO
+      FILE * fp;
+    #endif
+  #endif
 
-#ifdef ENABLE_FILEIO
-// functions defined elsehwere
-void cmd_Files( void );
-#endif
+  #ifdef ENABLE_FILEIO
+    // functions defined elsehwere
+    void cmd_Files( void );
+  #endif
 
-////////////////////
+  ////////////////////
 
-#ifndef boolean 
-#define boolean int
-#define true 1
-#define false 0
-#endif
+  #ifndef boolean 
+    #define boolean int
+    #define true 1
+    #define false 0
+  #endif
 #endif
 
 #ifndef byte
@@ -1107,7 +1105,7 @@ void loop()
   variables_begin = stack_limit - 27*VAR_SIZE;
 
   // memory free
-  printnum(variables_begin-program_end);
+  printnum(variables_begin-program_end-20); //@harm: fix to make sure max size program actually runs
   printmsg(memorymsg);
 #ifdef ARDUINO
 #ifdef ENABLE_EEPROM
@@ -1878,7 +1876,7 @@ print:
 
 mem:
   // memory free
-  printnum(variables_begin-program_end);
+  printnum(variables_begin-program_end-20); //@harm: fix to make sure max size program actually runs
   printmsg(memorymsg);
 #ifdef ARDUINO
 #ifdef ENABLE_EEPROM
