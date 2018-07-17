@@ -6,9 +6,10 @@
 //	          Scott Lawrence <yorgle@gmail.com>
 //            Harm de Leeuw <deleeuw52@outlook.com>
 
-#define kVersion "v0.17x"
+#define kVersion "v0.17y"
 
-// v0.17x : 2018-7-17 (Harm)
+// v0.17y : 2018-7-17 (Harm)
+//      fixed eformat anoyance
 //      implement hardware serial buffers correctly, and make sur emax program will run
 //      fixed bug in re-asigning servo's causing jitter when frequently updated
 //      undo the serial buffer resizing at cost of program space
@@ -1466,7 +1467,7 @@ eformat:
       if( (i & 0x03f) == 0x20 ) outchar( '.' );
       EEPROM.write( i, 0 );
     }
-    outchar( LF );
+    outchar( NL ); // @harm: was ( LF )
   }
   goto execnextline;
 
@@ -1783,6 +1784,8 @@ poke:
     value = expression();
     if(expression_error)
       goto qwhat;
+
+    //address[0] = value; @harm...dit werkt niet. Waarom niet.?
     //printf("Poke %p value %i\n",address, (unsigned char)value);
     // Check that we are at the end of the statement
     if(*txtpos != NL && *txtpos != ':')
