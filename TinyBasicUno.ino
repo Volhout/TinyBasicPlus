@@ -9,8 +9,10 @@
 #define kVersion "v0.18"
 
 // v0.18 : 2018-7-18(Harm)
-//      fixed eformat anoyance, added ARUN 1 or 0 (eautorun on/off).
-//      implement hardware serial buffers correctly, and make sur emax program will run
+//      fixed EFORMAT anoyance, added ARUN 1 or 0 (eautorun on/off). fix INPUT statement with wrong 
+//      input. removed NOSERVO (requires HW disconnect, forcing coldboot anyway).
+//      implement hardware serial buffers correctly, and make sure max size program will run since 
+//      keyboard buffer is added after end of program. Assume 20 bytes for it.
 //      fixed bug in re-asigning servo's causing jitter when frequently updated
 //      undo the serial buffer resizing at cost of program space
 //
@@ -1573,12 +1575,13 @@ inputagain:
     ignore_blanks();
     expression_error = 0;
     value = expression();
-    if(expression_error)
+    txtpos = tmptxtpos;           //@harm fix input statement with faulty key entry
+      if(expression_error)
       goto inputagain;
     ((short int *)variables_begin)[var - 'A'] = value;
-    txtpos = tmptxtpos;
+//    txtpos = tmptxtpos;         //@harm fix input statement with faulty key entry
    
-    goto run_next_statement;
+    goto run_next_statement; 
   }
  
 #ifdef ENABLE_EAUTORUN
