@@ -6,10 +6,10 @@
 //	          Scott Lawrence <yorgle@gmail.com>
 //            Harm de Leeuw <deleeuw52@outlook.com>
 
-#define kVersion "v0.17y"
+#define kVersion "v0.18"
 
-// v0.17y : 2018-7-17 (Harm)
-//      fixed eformat anoyance
+// v0.18 : 2018-7-18(Harm)
+//      fixed eformat anoyance, added ARUN 1 or 0 (eautorun on/off).
 //      implement hardware serial buffers correctly, and make sur emax program will run
 //      fixed bug in re-asigning servo's causing jitter when frequently updated
 //      undo the serial buffer resizing at cost of program space
@@ -145,9 +145,10 @@ char eliminateCompileErrors = 1;  // fix to suppress arduino build errors
 #define kAutorunFilename  "autorun.bas"
 
 // this is the alternate autorun.  Autorun the program in the eeprom.
-// it will load whatever is in the EEProm and run it
-//#define ENABLE_EAUTORUN 1
-#undef ENABLE_EAUTORUN
+// it will load whatever is in the EEProm and run it when the first character
+// has bit7 = 0 .@harm. switch with ARUN command (ARUN 1 / ARUN 0)
+#define ENABLE_EAUTORUN 1
+//#undef ENABLE_EAUTORUN
 
 // this will enable the "TONE", "NOTONE" command using a piezo
 // element on the specified pin.  Wire the red/positive/piezo to the kPiezoPin,
@@ -374,6 +375,9 @@ static const unsigned char keywords[] PROGMEM = {
   'R','U','N'+0x80,
   'P','O','K','E'+0x80,
   'L','E','T'+0x80,
+#ifdef ENABLE_EAUTORUN
+  'A','R','U','N'+0x80,
+#endif
 #ifdef ENABLE_TONES
   'T','O','N','E','W'+0x80,
   'T','O','N','E'+0x80,
@@ -381,7 +385,6 @@ static const unsigned char keywords[] PROGMEM = {
 #endif
 #ifdef ARDUINO
 #ifdef ENABLE_SERVO 
-  'N','O','S','E','R','V','O'+0x80,
   'S','E','R','V','O'+0x80,
 #endif
 #ifdef ENABLE_EEPROM
@@ -432,7 +435,10 @@ enum {
   KW_MEM,
   KW_RUN, 
   KW_POKE,
-  KW_LET, 
+  KW_LET,
+#ifdef ENABLE_EAUTORUN
+  KW_ARUN,  
+#endif
 #ifdef ENABLE_TONES
   KW_TONEW, 
   KW_TONE, 
@@ -440,7 +446,6 @@ enum {
 #endif
 #ifdef ARDUINO
 #ifdef ENABLE_SERVO
-  KW_NOSERVO, 
   KW_SERVO,
 #endif
 #ifdef ENABLE_EEPROM
@@ -562,6 +567,8 @@ static const unsigned char sdfilemsg[]        PROGMEM = "SD file error.";
 static const unsigned char dirextmsg[]        PROGMEM = "(dir)";
 static const unsigned char slashmsg[]         PROGMEM = "/";
 static const unsigned char spacemsg[]         PROGMEM = " ";
+static const unsigned char autorunmsg[]       PROGMEM = "autorun ON";
+
 
 static int inchar(void);
 static void outchar(unsigned char c);
@@ -1387,7 +1394,10 @@ interperateAtTxtpos:
     goto rseed;
   case KW_MILS:
     goto milis;
-
+#ifdef ENABLE_EAUTORUN
+  case KW_ARUN:
+    goto arun;
+#endif    
 #ifdef ENABLE_TONES
   case KW_TONEW:
     alsoWait = true;
@@ -1401,8 +1411,6 @@ interperateAtTxtpos:
 #ifdef ENABLE_SERVO
   case KW_SERVO:
     goto servo;
-  case KW_NOSERVO:
-    goto servo_off;
 #endif
 #ifdef ENABLE_EEPROM
   case KW_EFORMAT:
@@ -1444,7 +1452,7 @@ elist:
     int i;
     for( i = 0 ; i < (E2END +1) ; i++ )
     {
-      val = EEPROM.read( i );
+      val = (EEPROM.read( i ) & 0x7f);
 
       if( val == '\0' ) {
         goto execnextline;
@@ -1467,7 +1475,8 @@ eformat:
       if( (i & 0x03f) == 0x20 ) outchar( '.' );
       EEPROM.write( i, 0 );
     }
-    outchar( NL ); // @harm: was ( LF )
+    outchar( CR ); // @harm: was ( LF )
+    outchar( LF ); // @harm: was ( LF )
   }
   goto execnextline;
 
@@ -1572,6 +1581,32 @@ inputagain:
     goto run_next_statement;
   }
  
+#ifdef ENABLE_EAUTORUN
+arun:
+  {
+    int value;
+    int val = EEPROM.read(0);
+    
+    ignore_blanks();
+    value = *txtpos & 1; // values 0 and 1
+
+    if( value == 1){ 
+      val = val & 0x7f;
+    }
+    else {
+      val = val | 0x80;
+    }
+    EEPROM.write(0,val);
+    delay(10);
+    txtpos++;
+    ignore_blanks();
+    if(*txtpos != NL && *txtpos != ':')
+      goto qwhat;
+    goto run_next_statement;
+  }
+#endif  
+
+
 milis:
   {
     int value;
@@ -2131,7 +2166,7 @@ servo:
  }
   goto run_next_statement;
 
-servo_off:
+/*servo_off:
 {
     short int pin;
 
@@ -2166,6 +2201,7 @@ servo_off:
     }  
   }
   goto run_next_statement;
+  */
   
 #endif //servo 
 
@@ -2286,7 +2322,7 @@ void setup()
   }
 #endif /* ENABLE_AUTORUN */
 
-#endif /* ENABLE_FILEIO */
+#endif /* ENABLE_FILEIO *//dev/ttyACM0
 
 #ifdef ENABLE_EEPROM
 #ifdef ENABLE_EAUTORUN
@@ -2294,6 +2330,7 @@ void setup()
   int val = EEPROM.read(0);
   if( val >= '0' && val <= '9' ) {
     program_end = program_start;
+    printmsg(autorunmsg);
     inStream = kStreamEEProm;
     eepos = 0;
     inhibitOutput = true;
@@ -2344,7 +2381,7 @@ static int inchar()
   case( kStreamEEProm ):
 #ifdef ENABLE_EEPROM
 #ifdef ARDUINO
-    v = EEPROM.read( eepos++ );
+    v = (EEPROM.read( eepos++ ) & 0x7f); // @harm : mask bit 7
     if( v == '\0' ) {
       goto inchar_loadfinish;
     }
@@ -2489,5 +2526,4 @@ void cmd_Files( void )
 #endif
 
 /***************************************************************************/
-
 
