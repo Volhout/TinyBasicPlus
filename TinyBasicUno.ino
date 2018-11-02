@@ -6,10 +6,13 @@
 //	          Scott Lawrence <yorgle@gmail.com>
 //            Harm de Leeuw <deleeuw52@outlook.com>
 
-#define kVersion "v0.18"
+#define kVersion "v0.18s"
 
+// v0.18s : 2018-11-2 (Harm)
+//       deeper for/next stack (from 5 to 8 levels)
+//
 // v0.18 : 2018-7-18(Harm)
-//      fixed EFORMAT anoyance, added ARUN 1 or 0 (eautorun on/off). fix INPUT statement with wrong 
+//      fixed EFORMAT anoyance, added ERUN 1 or 0 (eautorun on/off). fix INPUT statement with wrong 
 //      input. removed NOSERVO (requires HW disconnect, forcing coldboot anyway).
 //      implement hardware serial buffers correctly, and make sure max size program will run since 
 //      keyboard buffer is added after end of program. Assume 20 bytes for it.
@@ -378,7 +381,7 @@ static const unsigned char keywords[] PROGMEM = {
   'P','O','K','E'+0x80,
   'L','E','T'+0x80,
 #ifdef ENABLE_EAUTORUN
-  'A','R','U','N'+0x80,
+  'E','R','U','N'+0x80,
 #endif
 #ifdef ENABLE_TONES
   'T','O','N','E','W'+0x80,
@@ -533,7 +536,7 @@ static const unsigned char highlow_tab[] PROGMEM = {
 #define HIGHLOW_HIGH    1
 #define HIGHLOW_UNKNOWN 4
 
-#define STACK_SIZE (sizeof(struct stack_for_frame)*5)
+#define STACK_SIZE (sizeof(struct stack_for_frame)*8)
 #define VAR_SIZE sizeof(short int) // Size of variables in bytes
 
 static unsigned char *stack_limit;
@@ -552,7 +555,7 @@ static const unsigned char okmsg[]            PROGMEM = "OK";
 static const unsigned char whatmsg[]          PROGMEM = "What? ";
 static const unsigned char howmsg[]           PROGMEM =	"How?";
 static const unsigned char sorrymsg[]         PROGMEM = "Sorry!";
-static const unsigned char initmsg[]          PROGMEM = "TinyBasic Plus " kVersion;
+static const unsigned char initmsg[]          PROGMEM = "TinyBasic UNO " kVersion;
 static const unsigned char memorymsg[]        PROGMEM = " RAM bytes free.";
 #ifdef ARDUINO
 #ifdef ENABLE_EEPROM
